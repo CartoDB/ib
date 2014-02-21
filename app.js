@@ -1,50 +1,32 @@
 
-var COUNT = 10000;
-var d3_category20 = [
-  0x1f77b4, 0xaec7e8,
-  0xff7f0e, 0xffbb78,
-  0x2ca02c, 0x98df8a,
-  0xd62728, 0xff9896,
-  0x9467bd, 0xc5b0d5,
-  0x8c564b, 0xc49c94,
-  0xe377c2, 0xf7b6d2,
-  0x7f7f7f, 0xc7c7c7,
-  0xbcbd22, 0xdbdb8d,
-  0x17becf, 0x9edae5
-];
+var URL = 'http://viz2.cartodb.com/api/v2/sql';
+var COUNT = 20000; // max number of particles per layer. 
+                   // chrome works like a charm even with 100k, with firefox dies
+                   // android and iphone/ipad works **pretty well** with 20000
+var SPEED = 7.0; // flights speed [1, 30]
+var ANIMATION_SPEED = 30000; // number of milliseconds the particles are emited
+                            // The animation ends when all the particles finish
 
+var PARTICLE_OFFSET = 10;  // the distance between particles when they go in parallel
+var TIME_JITTER = 0; //[0, 0.5] increase this to avoid all particles are launched at the same time 
 
-var d3_category20b = [
-  0x393b79, 0x5254a3, 0x6b6ecf, 0x9c9ede,
-  0x637939, 0x8ca252, 0xb5cf6b, 0xcedb9c,
-  0x8c6d31, 0xbd9e39, 0xe7ba52, 0xe7cb94,
-  0x843c39, 0xad494a, 0xd6616b, 0xe7969c,
-  0x7b4173, 0xa55194, 0xce6dbd, 0xde9ed6
-]
-
-var colors = d3_category20b.map(function(c) {
-  return [c >> 16, c >> 8 & 0xff, c & 0x0f];
-});
-
-/*
-var d3_category20c = [
-  0x3182bd, 0x6baed6, 0x9ecae1, 0xc6dbef,
-  0xe6550d, 0xfd8d3c, 0xfdae6b, 0xfdd0a2,
-  0x31a354, 0x74c476, 0xa1d99b, 0xc7e9c0,
-  0x756bb1, 0x9e9ac8, 0xbcbddc, 0xdadaeb,
-  0x636363, 0x969696, 0xbdbdbd, 0xd9d9d9
-]
-*/
+//** see BigPointLayer options, search for RAMBO word
 
 var BigPointLayer = L.CanvasLayer.extend({
 
-  initialize: function() {
+  initialize: function(options) {
     L.CanvasLayer.prototype.initialize.call(this, { tileLoader: true });
     this.provider = new ParticleProvider({
-      url: 'http://dev.localhost.lan:8080/api/v2/sql',
-      sql: 'select * from ib where date > \'2013-01-01\' limit 100000 '
+      url: URL, 
+      sql: options.sql
     });
+
+    this.options.color = options.color;
+    this.options.lineWidth= options.lineWidth;
+    this.options.clearOpacity = options.clearOpacity;
+
     this.running = false;
+    this.t0 = 0;
     this.time = 0;
     this.init();
   },
@@ -81,9 +63,6 @@ var BigPointLayer = L.CanvasLayer.extend({
 
   onAdd: function(map) {
     var self = this;
-    this.on('tilesLoaded', function() {
-      self.running = true;
-    });
     this.on('tileAdded', function(t) {
       console.log(t);
       self.provider.getTileData(t, t.zoom, function(data) {
@@ -91,7 +70,15 @@ var BigPointLayer = L.CanvasLayer.extend({
         self._tileLoaded(t, data);
       });
     });
+    map.on('zoomend', function() {
+      self.particles.count = 0;
+    });
     L.CanvasLayer.prototype.onAdd.call(this, map);
+  },
+
+  start: function() {
+    this.running = true;
+    this.t0 = Date.now();
   },
 
   emitParticles: function(part, coord) {
@@ -107,6 +94,7 @@ var BigPointLayer = L.CanvasLayer.extend({
     var cy = (point.y - h/2)|0;
     var _part = this.particles;
 
+    for (var ii = 0; ii < 2; ++ii) 
     for (var i = 0; i < part.length; ++i) {
       var p = part[i];
       var c = _part.count++;
@@ -121,12 +109,12 @@ var BigPointLayer = L.CanvasLayer.extend({
       _part.nx[c] = -mult*dy/m;
       _part.ny[c] = mult*dx/m;
       if( dx < 0) {
-      _part.nx[c] = -_part.nx[c]
-      _part.ny[c] = -_part.ny[c]; 
+        _part.nx[c] = -_part.nx[c];
+        _part.ny[c] = -_part.ny[c]; 
       }
-      _part.nx[c] += 4*Math.random()
-      _part.ny[c] += 4*Math.random()
-      _part.t[c] = p.t__float;
+      _part.nx[c] += PARTICLE_OFFSET*Math.random()
+      _part.ny[c] += PARTICLE_OFFSET*Math.random()
+      _part.t[c] = p.t__float + TIME_JITTER*Math.random();
       _part.color[c] = p.c__uint8;
       //_part.dx[c] = 0;//(p.x1__uint8 - p.x0__uint8)>>4;
       //_part.dy[c] = 0;//(p.y1__uint8 - p.y0__uint8)>>4;
@@ -142,8 +130,8 @@ var BigPointLayer = L.CanvasLayer.extend({
     if(!image) {
       //image = this.image = ctx.getImageData(0,0, w, h);
     }
-    image = this.image = ctx.getImageData(0,0, w, h);
-    var pixels = image.data;
+    //image = this.image = ctx.getImageData(0,0, w, h);
+    //var pixels = image.data;
     var x = this.particles.x;
     var y = this.particles.y;
     var dx = this.particles.dx;
@@ -161,18 +149,18 @@ var BigPointLayer = L.CanvasLayer.extend({
     var index;
     var time = this.time;
     var xx,yy, tt;
-    var SPEED = 2.0;
     var SPEED_INV = 1.0/SPEED;
     var color ;
     var ttt;
 
-    
     ctx.beginPath();
     ctx.globalCompositeOperation = 'source-over';
+    ctx.globalCompositeOperation = 'lighter';
+    var cos = Math.cos;
 
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    ctx.strokeStyle = this.options.color;
     //ctx.fillStyle= "rgba(255, 255, 255, 1)";
-    ctx.lineWidth = 0.2;
+    ctx.lineWidth = this.options.lineWidth;
     for(var i = 0, s = this.particles.count; i < s; ++i) {
       if(live[i] === 0) {
         tt = time - t[i];
@@ -181,8 +169,8 @@ var BigPointLayer = L.CanvasLayer.extend({
         yy = y[i] + ttt*(dy[i] - y[i]);
         var tttt = (2*ttt - 1);
         tttt = tttt*tttt - 1;
-        xx += nx[i] * tttt;
-        yy += ny[i] * tttt;
+        xx += nx[i] * tttt;// + 0.03*cos(tttt*30 + i))
+        yy += ny[i] * tttt;// + 0.03*cos(tttt*30 + i))
 
         ctx.moveTo(cx + ox[i], cy + oy[i]);
         ctx.lineTo(cx + xx, cy + yy);
@@ -212,13 +200,17 @@ var BigPointLayer = L.CanvasLayer.extend({
   },
 
   render: function() {
-    if(this.running) this.time += 0.005;
+    if(this.running) {
+      var t = Date.now();
+      this.time += (t - this.t0)/ANIMATION_SPEED;
+      this.t0 = t;
+    }
     var canvas = this.getCanvas();
     //canvas.width = canvas.width;
     var ctx = canvas.getContext('2d');
 
     // clear canvas
-    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillStyle = "rgba(0, 0, 0, " + this.options.clearOpacity + ")";
     ctx.globalCompositeOperation = "destination-in";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     this.renderPart(ctx);
@@ -290,8 +282,8 @@ ParticleProvider.prototype = {
       "  FROM ({_sql}) b " +
       "), " +
       "cte AS ( "+
-      "  SELECT ST_SnapToGrid(ST_PointN(i.the_geom_webmercator, 1), p.res) p0" +
-      "  ,      ST_SnapToGrid(ST_PointN(i.the_geom_webmercator, 2), p.res) p1" +
+      "  SELECT ST_SnapToGrid(ST_PointN(ST_GeometryN(i.the_geom_webmercator, 1), 1), p.res) p0" +
+      "  ,      ST_SnapToGrid(ST_PointN(ST_GeometryN(i.the_geom_webmercator, 1), 2), p.res) p1" +
       "  ,      timestamp " +
       "  ,      uid::integer%20 as color" + 
       "  FROM ({_sql}) i, par p " +
@@ -326,17 +318,56 @@ ParticleProvider.prototype = {
   }
 };
 
-function app() {
-    var map = L.map('map').setView([43.0, -4.0], 4);
+function after(n, f) {
+  var c = 0;
+  return function() { ++c === n && f(); }
+}
 
-    L.tileLayer('http://dev.localhost.lan:8181/tiles/tm_world_borders_simpl_0_19/{z}/{x}/{y}.png', {
+function app() {
+    //var map = L.map('map').setView([43.0, -4.0], 7);
+    var map = L.map('map').setView([23.0, -14.0], 4);
+
+    // base layer
+    L.tileLayer('http://{s}.api.cartocdn.com/base-dark/{z}/{x}/{y}.png', {
+      submains: '0123',
       maxZoom: 18,
-      attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, <a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery <a href="http://stamen.com">Stamen</a>'
+      attribution: 'cartodb'
     }).addTo(map);
 
+    // animated layers
+    // RAMBO
+    var layer1 = new BigPointLayer({
+      sql: "select * from ib_1 where cat = 'BUSINESS' and date > '2013-01-01' and date < '2013-03-01'",
+      color: "rgba(255, 55, 55, 1.0)", // line color
+      lineWidth: 0.15,   // line width
+      clearOpacity: 0.8  // trails lenght. 0 means no trails, 1.0 means persistent
+    });
+    var layer2 = new BigPointLayer({
+      sql: "select * from ib_1 where cat = 'TURISTA' and date > '2013-01-01' and date < '2013-03-01'",
+      color: "rgba(255, 255, 255, 0.8)",
+      lineWidth: 1,
+      clearOpacity: 0.8
+    });
 
+    var start = after(2, function() {
+      layer1.start();
+      layer2.start();
+    });
 
-
-    var layer = new BigPointLayer();
-    layer.addTo(map);
+  
+    /*
+     * if you use a cartodb layer use in this way
+     */
+    /*
+     cartodb.createLayer(map, 'http://viz2.cartodb.com/api/v2/viz/c640d03a-9af0-11e3-b698-0edd25b1ac90/viz.json').addTo(map).on('done', function() {
+        layer1.addTo(map);
+        layer2.addTo(map);
+        layer1.on('tilesLoaded', start);
+        layer2.on('tilesLoaded', start);
+     });
+    */
+    layer1.addTo(map);
+    layer2.addTo(map);
+    layer1.on('tilesLoaded', start);
+    layer2.on('tilesLoaded', start);
 }
