@@ -55,6 +55,15 @@ L.Mixin.TileLoader = {
     this._updateTiles();
   },
 
+  _tileCoord: function(key) {
+      var kArr = key.split(':');
+      return {
+        x: parseInt(kArr[0], 10),
+        y: parseInt(kArr[1], 10),
+        z: parseInt(kArr[2], 10)
+      }
+  },
+
   _removeOtherTiles: function (bounds) {
       var kArr, x, y, z, key;
       var zoom = this._map.getZoom();

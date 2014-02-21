@@ -9,10 +9,19 @@
   <link rel="stylesheet" href="vendor/leaflet.css" />
   <style> 
     html, body, #map { height: 100%; padding: 0; margin: 0; background: #d7282b;}
+    #passengers {
+      position: absolute; 
+      bottom: 20px;
+      right: 20px;
+      font-family: "Comic Sans";
+      font-size: 31px;
+      color: white;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+  <div id="passengers">0</div>
 
   <script src="https://d3voyrscnb0slx.cloudfront.net/cartodb.js/v3/cartodb.js"></script>
   <script src="torque.uncompressed.js"></script>

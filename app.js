@@ -1,10 +1,10 @@
 
 var URL = 'http://viz2.cartodb.com/api/v2/sql';
-var COUNT = 20000; // max number of particles per layer. 
+var COUNT = 100000; // max number of particles per layer. 
                    // chrome works like a charm even with 100k, with firefox dies
                    // android and iphone/ipad works **pretty well** with 20000
 var SPEED = 7.0; // flights speed [1, 30]
-var ANIMATION_SPEED = 30000; // number of milliseconds the particles are emited
+var ANIMATION_SPEED = 10000; // number of milliseconds the particles are emited
                             // The animation ends when all the particles finish
 
 var PARTICLE_OFFSET = 10;  // the distance between particles when they go in parallel
@@ -46,7 +46,8 @@ var BigPointLayer = L.CanvasLayer.extend({
       t: new Float32Array(COUNT),
       live: new Int8Array(COUNT),
       color: new Int8Array(COUNT),
-      count: 0
+      count: 0,
+      alive: 0,
     };
     this._clearParticles();
 
@@ -85,6 +86,14 @@ var BigPointLayer = L.CanvasLayer.extend({
     this.t0 = Date.now();
   },
 
+  restart: function() {
+    this.time = 0;
+    for(var t in this._tiles) {
+      this.emitParticles(this._tiles[t], this._tileCoord(t));
+    }
+    this.start();
+  },
+
   emitParticles: function(part, coord) {
     var tilePos = this.getTilePos(coord);
     var point = this._map.latLngToContainerPoint(new L.LatLng(0, 0));
@@ -100,6 +109,7 @@ var BigPointLayer = L.CanvasLayer.extend({
     for (var i = 0; i < part.length; ++i) {
       var p = part[i];
       var c = _part.count++;
+      ++_part.alive;
       _part.x[c] = tilePos.x + p.x0__uint8 - cx;
       _part.y[c] = tilePos.y + (256 -  p.y0__uint8) - cy;
 
@@ -108,6 +118,7 @@ var BigPointLayer = L.CanvasLayer.extend({
       if(tt > SPEED_INV) {
         _part.t[c] = 10000000;
         _part.live[c] = 1;
+        --_part.alive;
       } else {
         if (tt < 0) tt = 0;
         var ttt = SPEED * tt;
@@ -195,8 +206,11 @@ var BigPointLayer = L.CanvasLayer.extend({
         oy[i] = yy;
 
         if(tt > SPEED_INV) {
-          t[i] = 10000;
+          t[i] = 100000;
           live[i] = 1;
+          if(!--this.particles.alive) {
+            this.fire('animationEnd');
+          }
         }
       } else {
         live[i] = t[i] < time ? 0: -1;
@@ -337,15 +351,15 @@ function app() {
     // animated layers
     // RAMBO
     var layer1 = new BigPointLayer({
-      sql: "select * from ib_1 where cat = 'BUSINESS' and date > '2013-01-01' and date < '2013-03-01'",
-      color: "rgba(243, 213, 0, 1.0)",
+      sql: "select * from ib_1 where cat = 'BUSINESS' and date > '2011-01-01' and date < '2013-07-01'",
+      color: "rgba(243, 213, 0, 0.8)",
       lineWidth: 0.8,   // line width
       clearOpacity: 0.8  // trails lenght. 0 means no trails, 1.0 means persistent
     });
     var layer2 = new BigPointLayer({
-      sql: "select * from ib_1 where cat = 'TURISTA' and date > '2013-01-01' and date < '2013-03-01'",
+      sql: "select * from ib_1 where cat = 'TURISTA' and date > '2011-01-01' and date < '2013-07-01'",
       color: "rgba(255, 255, 255, 0.8)", // line color
-      lineWidth: 0.15,
+      lineWidth: 0.75,
       clearOpacity: 0.8
     });
 
@@ -355,6 +369,19 @@ function app() {
     });
 
   
+  var c = 0;
+  function restart() {
+    ++c;
+    if( c % 2 === 0) {
+      layer1.restart();
+      layer2.restart();
+    }
+  }
+
+  var passengers = document.getElementById('passengers');
+  setInterval(function() {
+    passengers.innerHTML = layer1.particles.alive + layer2.particles.alive;
+  }, 50);
     /*
      * if you use a cartodb layer use in this way
      */
@@ -363,5 +390,7 @@ function app() {
       layer1.addTo(map);
       layer1.on('tilesLoaded', start);
       layer2.on('tilesLoaded', start);
+      layer1.on('animationEnd', restart);
+      layer2.on('animationEnd', restart);
    });
 }
