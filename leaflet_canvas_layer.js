@@ -38,7 +38,14 @@ L.CanvasLayer = L.Class.extend({
                                 window.webkitRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) {
                                     return window.setTimeout(callback, 1000 / 60);
                                 };
+
+    var cancelAnimationFrame = window.calcelAnimationFrame || window.mozCancelAnimationFrame ||
+                                window.webkitCancelAnimationFrame || window.msCancelAnimationFrame || function(i) {
+                                  clearTimeout(i);
+                                }
+
     this.requestAnimationFrame = requestAnimationFrame;
+    this.cancelAnimationFrame = cancelAnimationFrame;
   },
 
   onAdd: function (map) {
@@ -130,7 +137,7 @@ L.CanvasLayer = L.Class.extend({
 
   _render: function() {
     if(this.currentFrame >= 0) {
-      cancelAnimationFrame(this.currentFrame);
+      this.cancelAnimationFrame.call(window, this.currentFrame);
     }
     this.currentFrame = this.requestAnimationFrame.call(window, this.render);
   },
