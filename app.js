@@ -338,14 +338,14 @@ function app() {
     // RAMBO
     var layer1 = new BigPointLayer({
       sql: "select * from ib_1 where cat = 'BUSINESS' and date > '2013-01-01' and date < '2013-03-01'",
-      color: "rgba(243, 213, 0, 0.8)",
-      lineWidth: 0.15,   // line width
+      color: "rgba(243, 213, 0, 1.0)",
+      lineWidth: 0.8,   // line width
       clearOpacity: 0.8  // trails lenght. 0 means no trails, 1.0 means persistent
     });
     var layer2 = new BigPointLayer({
       sql: "select * from ib_1 where cat = 'TURISTA' and date > '2013-01-01' and date < '2013-03-01'",
       color: "rgba(255, 255, 255, 0.8)", // line color
-      lineWidth: 0.8,
+      lineWidth: 0.15,
       clearOpacity: 0.8
     });
 
