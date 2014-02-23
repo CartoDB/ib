@@ -4,7 +4,7 @@ var COUNT = 100000; // max number of particles per layer.
                    // chrome works like a charm even with 100k, with firefox dies
                    // android and iphone/ipad works **pretty well** with 20000
 var SPEED = 7.0; // flights speed [1, 30]
-var ANIMATION_SPEED = 10000; // number of milliseconds the particles are emited
+var ANIMATION_SPEED = 20000; // number of milliseconds the particles are emited
                             // The animation ends when all the particles finish
 
 var PARTICLE_OFFSET = 10;  // the distance between particles when they go in parallel
