@@ -2,26 +2,94 @@
 <html>
 <head>
   <title>particles viz</title>
-  <!-- based on leaflet quick example: http://leafletjs.com/examples/quick-start-example.html -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <link rel="stylesheet" href="vendor/leaflet.css" />
-  <style> 
-    html, body, #map { height: 100%; padding: 0; margin: 0; background: #d7282b;}
+  <link href='http://fonts.googleapis.com/css?family=Maven+Pro:700' rel='stylesheet' type='text/css'>
+  <style>
+    html, body, #map { height: 100%; padding: 0; margin: 0; background: #d7282b; }
+
+    .logo {
+      position: absolute;
+      top: 35px; left: 35px;
+      display: block;
+      width: 204px;
+      height: 71px;
+      background: url('../img/iberia_logo.png') no-repeat;
+    }
+
+    .counter {
+      position: absolute;
+      z-index: 10;
+      right: 40px; bottom: 40px;
+      width: 290px;
+      padding: 5px;
+      font-family: 'Maven Pro', sans-serif;
+      text-transform: uppercase;
+      background: #fff;
+      text-align: center;
+      color: #464352;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      -ms-border-radius: 3px;
+      -o-border-radius: 3px;
+      border-radius: 3px;
+      -webkit-box-shadow: 0 3px 2px rgba(0, 0, 0, .2);
+      -moz-box-shadow: 0 3px 2px rgba(0, 0, 0, .2);
+      -ms-box-shadow: 0 3px 2px rgba(0, 0, 0, .2);
+      -o-box-shadow: 0 3px 2px rgba(0, 0, 0, .2);
+      box-shadow: 0 3px 2px rgba(0, 0, 0, .2);
+    }
+
+    .counter p {
+      font-weight: bold;
+      font-size: 14px;
+      line-height: 32px;
+      margin: 0;
+    }
+
     #passengers {
-      position: absolute; 
-      bottom: 20px;
-      right: 20px;
-      font-family: "Comic Sans";
-      font-size: 31px;
+      position: relative;
+      padding: 6px 13px 5px;
+      font-weight: bold;
+      font-size: 71px;
+      line-height: 1;
+      background: #33313C;
       color: white;
+      -webkit-border-radius: 3px;
+      -moz-border-radius: 3px;
+      -ms-border-radius: 3px;
+      -o-border-radius: 3px;
+      border-radius: 3px;
+    }
+
+    #passengers::after {
+      content: " ";
+      position: absolute;
+      top: 0; left: 0;
+      display: block;
+      width: 100%;
+      height: 41px;
+      background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAApCAYAAAAMCrglAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABV0RVh0Q3JlYXRpb24gVGltZQAyLzI0LzE0ZSQCDAAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAAqSURBVDiNY2AgEjBCMUHAMpwUMhGjiDZWjyocrApHE8WoQvIVjqYevAAAZb0Avcm94qEAAAAASUVORK5CYII=);
+    }
+
+    .leaflet-left .leaflet-control {
+      margin-left: 35px;
+    }
+
+    .leaflet-top .leaflet-control {
+      margin-top: 126px;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div id="passengers">0</div>
+  <div class="logo"></div>
+  <div class="counter">
+    <p>Passengers in the last 27 days</p>
+    <div id="passengers">0</div>
+  </div>
 
   <script src="https://d3voyrscnb0slx.cloudfront.net/cartodb.js/v3/cartodb.js"></script>
   <script src="torque.uncompressed.js"></script>
